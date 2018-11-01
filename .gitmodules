@@ -1,0 +1,6 @@
+[submodule "Lib/something"]
+	path = Lib/something
+	url = https://github.com/adamstark/Sound-Analyser.git
+[submodule "Lib/graphics"]
+	path = Lib/graphics
+	url = https://github.com/edinburgh-napier/set08116.git
