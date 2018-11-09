@@ -25,9 +25,8 @@ add_executable(test main.cpp)
 target_include_directories(test PUBLIC "lib/graphics/labs/framework")#dependencies
 target_link_libraries(test PRIVATE enu_graphics_framework )
 
-#copy resources to build post build script
-#add_custom_command(TARGET test POST_BUILD  
-#COMMAND ${CMAKE_COMMAND} -E copy_directory  "${PROJECT_SOURCE_DIR}/res" $<TARGET_FILE_DIR:test>)
+
+add_custom_target(copy_res ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/res" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/res")
 
 
 set_target_properties(enu_graphics_framework PROPERTIES FOLDER "DEPS")
