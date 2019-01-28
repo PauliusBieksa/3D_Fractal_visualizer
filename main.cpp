@@ -1,5 +1,5 @@
 #include <lib/glm/glm/glm.hpp>
-#include "Lib/graphics/labs/framework/src/graphics_framework.h"
+#include <graphics_framework.h>
 
 
 
@@ -9,6 +9,7 @@ using namespace glm;
 
 effect eff;
 target_camera cam;
+float elapsed_time = 0;
 
 
 geometry screen_quad;
@@ -23,8 +24,8 @@ bool load_content() {
 
 
 	// Load in shaders
-	eff.add_shader("core.vert", GL_VERTEX_SHADER);
-	eff.add_shader("core.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("res/shaders/Menger.vert", GL_VERTEX_SHADER);
+	eff.add_shader("res/shaders/Menger.frag", GL_FRAGMENT_SHADER);
 	// Build effect
 	eff.build();
 
@@ -37,6 +38,7 @@ bool load_content() {
 
 
 bool update(float delta_time) {
+	elapsed_time += delta_time;
 	// Update the camera
 	cam.update(delta_time);
 	return true;
@@ -47,6 +49,8 @@ bool render() {
 	renderer::bind(eff);
 	// Set MVP matrix uniform
 	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
+	glUniform1f(eff.get_uniform_location("aspect_ratio"), renderer::get_screen_aspect());
+	glUniform1f(eff.get_uniform_location("control1"), elapsed_time);
 	// Render geometry
 	renderer::render(screen_quad);
 	return true;
