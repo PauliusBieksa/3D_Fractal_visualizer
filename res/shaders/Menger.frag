@@ -34,15 +34,14 @@ vec4 map(in vec3 pos)
 	float d = sdBox(pos, vec3(1.0));
 	vec4 res = vec4(d, 1.0, 0.0, 0.0);
 	
-	// Find out why 0.2?????????????????????????
-	//float ani = smoothstep(-0.2, 0.2, -cos(0.5 * control1));
-	float ani = 0.0;
-	//float off = 1.5 * sin(0.01 * control1);
-	float off = 0.0;
+	float ani = smoothstep(-0.2, 0.2, -cos(0.5 * control1));
+	//float ani = 0.0;
+	float off = 1.5 * sin(0.01 * control1);
+	//float off = 0.0;
 	
 	float scaling = 1.0;
 	//float scaling = 1.0 + 1.5 * sin(control1);
-	for (int m = 0; m < 4; m++)
+	for (int m = 0; m < 6; m++)
 	{
 		pos = mix(pos, y30_rot * (pos + off), ani);
 		
@@ -99,19 +98,19 @@ float soft_shadow(in vec3 ro, in vec3 rd, float mint, float k)
 	return clamp(res, 0.0, 1.0);
 }
 
-//
+// Calculates normal by sampling nearby positions
 vec3 calc_normal(in vec3 pos)
 {
 	vec3 eps = vec3(0.001, 0.0, 0.0);
 	vec3 nor;
 	nor.x = map(pos + eps.xyy).x - map(pos - eps.xyy).x;
 	nor.y = map(pos + eps.yxy).x - map(pos - eps.yxy).x;
-	nor.z = map(pos + eps.yxx).x - map(pos - eps.yyx).x;
+	nor.z = map(pos + eps.yyx).x - map(pos - eps.yyx).x;
 	return normalize(nor);
 }
 
 //Light
-vec3 light = normalize(vec3(1.0, 0.9, 0.3));
+vec3 light_dir = normalize(vec3(1.0, 0.9, 0.3));
 
 // Determines the colour of the pixel
 vec3 render(in vec3 ro, in vec3 rd)
@@ -127,11 +126,11 @@ vec3 render(in vec3 ro, in vec3 rd)
 		vec3 nor = calc_normal(pos);
 		
 		float occ = tmat.y;
-		float sha = soft_shadow(pos, light, 0.01, 64.0);
+		float sha = soft_shadow(pos, light_dir, 0.01, 64.0);
 		
-		float dif = max(0.1 + 0.9 * dot(nor, light), 0.0);
+		float dif = max(0.1 + 0.9 * dot(nor, light_dir), 0.0);
 		float sky = 0.5 + 0.5 * nor.y;
-		float bac = max(0.4 + 0.6 * dot(nor, vec3(-light.x, light.y, -light.z)), 0.0);
+		float bac = max(0.4 + 0.6 * dot(nor, vec3(-light_dir.x, light_dir.y, -light_dir.z)), 0.0);
 		
 		vec3 lin = vec3(0.0);
 		lin += 1.0 * dif * vec3(1.1, 0.85, 0.6) * sha;
@@ -154,7 +153,6 @@ void main()
 	// Clip spcase coordinates are interpolated through the layout, instead of calculating them here.
 	vec3 pos = clip_pos.xyz;
 	pos.x *= aspect_ratio;
-	// There is no adjustment for aspect ratio, so shapes might come out stretched!!!
 	
 	
     // camera

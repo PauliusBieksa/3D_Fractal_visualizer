@@ -8,8 +8,8 @@ using namespace graphics_framework;
 using namespace glm;
 
 effect eff;
-target_camera cam;
 float elapsed_time = 0;
+
 
 
 geometry screen_quad;
@@ -24,23 +24,16 @@ bool load_content() {
 
 
 	// Load in shaders
-	eff.add_shader("res/shaders/Menger.vert", GL_VERTEX_SHADER);
-	eff.add_shader("res/shaders/Menger.frag", GL_FRAGMENT_SHADER);
+	eff.add_shader("res/shaders/Fractal.vert", GL_VERTEX_SHADER);
+	eff.add_shader("res/shaders/glowing.frag", GL_FRAGMENT_SHADER);
 	// Build effect
 	eff.build();
-
-	// Set camera properties
-	cam.set_position(vec3(0.0f, 0.0f, 10.0f));
-	cam.set_target(vec3(0.0f, 0.0f, 0.0f));
-	cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
 	return true;
 }
 
 
 bool update(float delta_time) {
-	elapsed_time += delta_time;
-	// Update the camera
-	cam.update(delta_time);
+	elapsed_time += delta_time / 5.0f;
 	return true;
 }
 
