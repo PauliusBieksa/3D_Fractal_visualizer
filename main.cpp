@@ -1,5 +1,7 @@
 #include <lib/glm/glm/glm.hpp>
 #include <graphics_framework.h>
+#include <iostream>
+#include <math.h>
 
 
 
@@ -9,6 +11,8 @@ using namespace glm;
 
 effect eff;
 float elapsed_time = 0;
+float control1 = 0.0f;
+float control2 = 0.0f;
 
 
 
@@ -32,8 +36,27 @@ bool load_content() {
 }
 
 
-bool update(float delta_time) {
+bool update(float delta_time)
+{
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT))
+	{
+		control2 -= 0.5f * delta_time;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT))
+	{
+		control2 += 0.5f * delta_time;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN))
+	{
+		control1 -= 0.5f * delta_time;
+	}
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP))
+	{
+		control1 += 0.5f * delta_time;
+	}
+
 	elapsed_time += delta_time / 5.0f;
+	cout << sinf(control1) << endl;
 	return true;
 }
 
@@ -43,7 +66,8 @@ bool render() {
 	// Set MVP matrix uniform
 	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
 	glUniform1f(eff.get_uniform_location("aspect_ratio"), renderer::get_screen_aspect());
-	glUniform1f(eff.get_uniform_location("control1"), elapsed_time);
+	glUniform1f(eff.get_uniform_location("control1"), control1);
+	glUniform1f(eff.get_uniform_location("control2"), control2);
 	// Render geometry
 	renderer::render(screen_quad);
 	return true;

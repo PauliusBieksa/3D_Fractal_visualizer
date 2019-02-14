@@ -1,6 +1,7 @@
 #version 440
 
 uniform float control1;
+uniform float control2;
 uniform float aspect_ratio;
 
 layout(location = 1) in vec4 clip_pos;
@@ -9,17 +10,17 @@ layout(location = 0) out vec4 out_colour;
 
 
 
-#define k_raymarch_iterations 24
+#define k_raymarch_iterations 100
 #define k_IFS_iterations 16
 
 float k_exposure = 0.1;
 
 // KIFS parameters
 const float f_scale = 1.25;
-vec3 v_offset = vec3(-1.0, -2.0, -0.2);
+vec3 v_offset = vec3(-1.0, -2.0, -0.5);
 mat3 m;
 
-const float k_far_clip = 30;
+const float k_far_clip = 100;
 
 
 const vec3 v_glow_colour = vec3(1.0, 0.075, 0.01) * 5.0;
@@ -43,8 +44,10 @@ vec2 Get_scene_distance(in vec3 v_pos)
 	}
 	float l = length(v_pos) / f_total_scale;
 	
+	// Fattten the shape to fill the gaps
 	float f_dist = l - 0.1;
 	return vec2(f_dist, f_trap);
+	//return vec2(l, f_trap);
 }
 
 vec4 Raycast(const in vec3 v_ro, const in vec3 v_rd)
@@ -56,6 +59,7 @@ vec4 Raycast(const in vec3 v_ro, const in vec3 v_rd)
 	{
 		d = Get_scene_distance(v_ro + v_rd * t);
 		f_closest = min(f_closest, d.x / t);
+		//f_closest = min(f_closest, d.x);
 		if (abs(d.x) < 0.0001)
 		{
 			break;
@@ -99,16 +103,17 @@ vec3 Trace_ray(const in vec3 v_ro, const in vec3 v_rd)
 	float f_shade = 1.0;
 	float f_glow = 0.0;
 	vec3 v_env_dir = v_rd;
+	vec3 v_bg = vec3(0.0, 1.0, 0.0);
 	if (v_hit.x < k_far_clip)
 	{
+		v_bg = vec3(1.0, 0.0, 0.0);
 		v_env_dir = reflect(v_rd, v_hit_normal);
 		f_glow = clamp(v_hit.z * 0.1, 0.0, 1.0);
 		f_glow = pow(f_glow, 3.0);
 		f_shade = f_glow;
 	}
 	
-	//vec3 v_env = tex
-	vec3 v_colour = vec3(0.25 + f_shade * 0.75);
+	vec3 v_colour = vec3(0.25 + f_shade * 0.75) * v_bg;
 	if (v_hit.x < k_far_clip)
 	{
 		v_colour += v_glow_colour * 10.0 * f_glow;
@@ -134,6 +139,7 @@ vec3 Trace_ray(const in vec3 v_ro, const in vec3 v_rd)
 	return v_colour;
 }
 
+// Gets rotation matrix from quaternion
 mat3 Set_rot(const in vec4 q)
 {
 	vec4 qsq = q * q;
@@ -151,11 +157,13 @@ mat3 Set_rot(const in vec4 q)
 	);
 }
 
-mat3 Set_rot(vec3 v_axis, float f_angle)
+// Gets rotation matrix form axis and angle
+mat3 Set_rot(vec3 axis, float angle)
 {
-	return Set_rot(vec4(normalize(v_axis) * f_angle, cos(f_angle)));
+	return Set_rot(vec4(normalize(axis) * angle, cos(angle)));
 }
 
+// Apply a vignette fade effect
 vec3 Apply_post_fx(const in vec3 v_in, const in vec2 v_uv)
 {
 	vec3 v_result = v_in;
@@ -172,36 +180,18 @@ void main()
 	// Clip spcase coordinates are interpolated through the layout, instead of calculating them here.
 	vec2 pos = clip_pos.xy;
 	pos.x *= aspect_ratio;
+
+    // camera
+    vec3 ro = vec3(20.0 * sin(control2), 4.0, 20.0 * cos(control2)); // ray origin
+    //vec3 ro = vec3(0.0, 4.0, 20.0); // ray origin
+    vec3 camera_forward = normalize(vec3(0.0) - ro); // forward?
+    vec3 camera_left = normalize(cross(vec3(0.0, 1.0, 0.0), camera_forward )); // left?
+    vec3 camera_up = normalize(cross(camera_forward, camera_left)); // up?
 	
+	//float f_fov = control2;
 	
-	float f_heading = control1 * 0.21;
-	float f_elevation = cos(control1 * 0.1) * 0.5;
-	float f_camera_distance = 15.0 + sin(control1 * 0.05) * 5.0;
-	//float f_heading = 0.5;
-	//float f_elevation = 0.5;
-	//float f_camera_distance = 15.0;
-	
-	float f_sin_elevation = sin(f_elevation);
-	float f_cos_elevation = cos(f_elevation);
-	float f_sin_heading = sin(f_heading);
-	float f_cos_heading = cos(f_heading);
-	
-	vec3 v_camera_offset;
-	v_camera_offset.x = f_sin_heading * f_cos_elevation;
-	v_camera_offset.y = f_sin_elevation;
-	v_camera_offset.z = f_cos_heading * f_cos_elevation;
-	
-	vec3 v_camera_pos = v_camera_offset * f_camera_distance;
-	
-	vec3 v_camera_target = vec3(0.0);
-	
-	vec3 v_forward = normalize(v_camera_target - v_camera_pos);
-	vec3 v_right = normalize(cross(vec3(0.0, 1.0, 0.0), v_forward)); // Left??
-	vec3 v_up = normalize(cross(v_forward, v_right));
-	
-	float f_fov = 2.0;
-	
-	vec3 v_rd = normalize(pos.x * v_right + pos.y * v_up + v_forward * f_fov);
+	//vec3 v_rd = normalize(pos.x * camera_left + pos.y * camera_up + camera_forward * f_fov);
+	vec3 v_rd = normalize(pos.x * camera_left + pos.y * camera_up + camera_forward);
 	
 	vec3 v_rotation_axis = vec3(1.0, 4.0, 2.0);
 	
@@ -210,12 +200,10 @@ void main()
 	v_rotation_axis = v_rotation_axis * m2;
 	
 	float f_rotation_angle = sin(control1 * 0.5);
-	
-	// Mouse stuff skiped
-	
 	m = Set_rot(v_rotation_axis, f_rotation_angle);
 	
-	vec3 v_result = Trace_ray(v_camera_pos, v_rd);
+	vec3 v_result = Trace_ray(ro, v_rd);
+	
 	v_result = Apply_post_fx(v_result, pos);
 	out_colour = vec4(v_result, 1.0);
 	//out_colour = vec4(pos.x, pos.y, 0.0, 1.0);
