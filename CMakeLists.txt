@@ -10,6 +10,7 @@ SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/lib")
 SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/lib")
 
 add_subdirectory("Lib/graphics/labs/framework")
+add_subdirectory("Lib/portaudio")
 
 #Glew is dumb and won't listen to our build directories, so manually set it.
 set_target_properties(libglew_shared PROPERTIES
@@ -18,12 +19,12 @@ set_target_properties(libglew_shared PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
 )
 
-add_executable(test main.cpp)
+add_executable(test main.cpp audio_handler.h audio_handler.cpp)
 #include_directories(${CMAKE_SOURCE_DIR})
 
 #add_subdirectory("lib/graphics/labs/framework")
 target_include_directories(test PUBLIC "lib/graphics/labs/framework")#dependencies
-target_link_libraries(test PRIVATE enu_graphics_framework )
+target_link_libraries(test PRIVATE enu_graphics_framework portaudio_static)
 
 
 add_custom_target(copy_res ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/res" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/res")

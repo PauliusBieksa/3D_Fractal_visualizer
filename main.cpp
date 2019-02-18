@@ -2,6 +2,7 @@
 #include <graphics_framework.h>
 #include <iostream>
 #include <math.h>
+#include "audio_handler.h"
 
 
 
@@ -26,6 +27,7 @@ bool load_content() {
 	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
 	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
+	Audio_handler ah;
 
 	// Load in shaders
 	eff.add_shader("res/shaders/Fractal.vert", GL_VERTEX_SHADER);
@@ -56,7 +58,7 @@ bool update(float delta_time)
 	}
 
 	elapsed_time += delta_time / 5.0f;
-	cout << sinf(control1) << endl;
+	//cout << sinf(control1) << endl;
 	return true;
 }
 
