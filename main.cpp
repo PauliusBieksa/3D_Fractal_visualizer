@@ -27,7 +27,7 @@ bool load_content() {
 	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
 	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
-	Audio_handler ah;
+	static Audio_handler ah;
 
 	// Load in shaders
 	eff.add_shader("res/shaders/Fractal.vert", GL_VERTEX_SHADER);

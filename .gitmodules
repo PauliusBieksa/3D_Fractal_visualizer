@@ -4,3 +4,6 @@
 [submodule "Lib/graphics"]
 	path = Lib/graphics
 	url = https://github.com/edinburgh-napier/set08116.git
+[submodule "Lib/portaudio"]
+	path = Lib/portaudio
+	url = https://git.assembla.com/portaudio.git
