@@ -16,6 +16,7 @@ float control1 = 0.0f;
 float control2 = 0.0f;
 
 
+Audio_handler ah;
 
 geometry screen_quad;
 
@@ -27,7 +28,8 @@ bool load_content() {
 	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
 	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
-	static Audio_handler ah;
+	//ah.initialize_default();
+
 
 	// Load in shaders
 	eff.add_shader("res/shaders/Fractal.vert", GL_VERTEX_SHADER);
@@ -57,6 +59,9 @@ bool update(float delta_time)
 		control1 += 0.5f * delta_time;
 	}
 
+
+
+
 	elapsed_time += delta_time / 5.0f;
 	//cout << sinf(control1) << endl;
 	return true;
@@ -75,9 +80,15 @@ bool render() {
 	return true;
 }
 
-void main() {
+void main()
+{
+	// Initialize the audio handler
+	//ah.initialize_choose_input();
+	ah.initialize_default();
+
+
 	// Create application
-	app application("Graphics Coursework");
+	app application("Fractals");
 	// Set load content, update and render methods
 	application.set_load_content(load_content);
 	application.set_update(update);
