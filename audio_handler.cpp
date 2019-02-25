@@ -2,13 +2,19 @@
 #include <iostream>
 
 
+
+//struct ring_buffer
+//{
+//
+//};
+
 // Structure for fast reading and writing wit hoverwrite protection
 struct semaphore_frame_mono
 {
 private:
-	static int read;
-	static int write;
-	static float frame[3][FRAME_SIZE];
+	int read = -1;
+	int write = 0;
+	float frame[3][FRAME_SIZE];
 
 
 	// Increment the write counter
@@ -35,12 +41,6 @@ private:
 
 public:
 
-	void init()
-	{
-		read = -1;
-		write = 0;
-	}
-
 	// Writes sample
 	void write_frame(float *s)
 	{
@@ -60,7 +60,7 @@ public:
 };
 
 
-static semaphore_frame_mono transfer_frame;
+semaphore_frame_mono *transfer_frame;
 static unsigned int no_input_count;
 
 
@@ -71,7 +71,7 @@ Audio_handler::Audio_handler()
 	if (err != paNoError)
 		printf("PortAudio initialization failed\n%s\n", Pa_GetErrorText(err));
 
-	transfer_frame.init();
+	transfer_frame = new semaphore_frame_mono();
 }
 
 
@@ -82,6 +82,11 @@ Audio_handler::~Audio_handler()
 	// If stream has been started, close it
 	if (stream != nullptr)
 	{
+		err = Pa_StopStream(stream);
+		if (err != paNoError)
+			printf("Failed to stop stream\n");
+		// Free memory allocated in this file
+		free(transfer_frame);
 		err = Pa_CloseStream(stream);
 		if (err != paNoError)
 			printf("Failed to close stream\n");
@@ -265,6 +270,6 @@ int Audio_handler::callback(const void *input, void *output, unsigned long frame
 		}
 	}
 
-	transfer_frame.write_frame(single_mono_frame);
-	return 0;
+	transfer_frame->write_frame(single_mono_frame);
+	return paContinue;
 }
