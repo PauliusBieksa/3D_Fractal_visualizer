@@ -3,75 +3,21 @@
 
 
 
-//struct ring_buffer
-//{
-//
-//};
 
-// Structure for fast reading and writing wit hoverwrite protection
-struct semaphore_frame_mono
-{
-private:
-	int read = -1;
-	int write = 0;
-	float frame[3][FRAME_SIZE];
-
-
-	// Increment the write counter
-	void w_incr()
-	{
-		if (write > 2)
-			if (read == 0)
-				write = 1;
-			else
-				write = 0;
-		else
-			if (write++ == read)
-				write++;
-	}
-
-	// Sets the read flag
-	void set_read()
-	{
-		if (write == 0)
-			read = 2;
-		else
-			read = write - 1;
-	}
-
-public:
-
-	// Writes sample
-	void write_frame(float *s)
-	{
-		w_incr();
-		for (unsigned int i = 0; i < FRAME_SIZE; i++)
-			frame[write][i] = s[i];
-	}
-
-	// Reads last sample. Returned through result (result has to be 'FRAME_SIZE' sized)
-	void read_frame(float *result)
-	{
-		set_read();
-		for (unsigned int i = 0; i < FRAME_SIZE; i++)
-			result[i] = frame[read][i];
-		read = -1;
-	}
-};
-
-
-semaphore_frame_mono *transfer_frame;
 static unsigned int no_input_count;
 
 
 // Default constructor
 Audio_handler::Audio_handler()
 {
+	rb.rb_incoming_data = PaUtil_AllocateMemory(sizeof(float*) * 256);
+	if (rb.rb_incoming_data == NULL)
+		printf("Failed to allocate memory for ringbuffer.\n");
+	PaUtil_InitializeRingBuffer(&rb.rb_incoming, sizeof(float*), 256, rb.rb_incoming_data);
+
 	err = Pa_Initialize();
 	if (err != paNoError)
 		printf("PortAudio initialization failed\n%s\n", Pa_GetErrorText(err));
-
-	transfer_frame = new semaphore_frame_mono();
 }
 
 
@@ -85,9 +31,11 @@ Audio_handler::~Audio_handler()
 		err = Pa_StopStream(stream);
 		if (err != paNoError)
 			printf("Failed to stop stream\n");
-		// Free memory allocated in this file
-		free(transfer_frame);
 		err = Pa_CloseStream(stream);
+		// Free memory
+		if (rb.rb_incoming_data)
+			PaUtil_FreeMemory(rb.rb_incoming_data);
+
 		if (err != paNoError)
 			printf("Failed to close stream\n");
 	}
@@ -139,7 +87,7 @@ void Audio_handler::initialize_default()
 		FRAME_SIZE,
 		paClipOff,
 		callback,
-		NULL
+		&rb
 	);
 	if (err != paNoError)
 		printf("Failed opening stream");
@@ -223,7 +171,7 @@ void Audio_handler::initialize_choose_input()
 		FRAME_SIZE,
 		paClipOff,
 		callback,
-		NULL
+		&rb
 	);
 	if (err != paNoError)
 		printf("Failed opening stream");
@@ -246,7 +194,8 @@ int Audio_handler::callback(const void *input, void *output, unsigned long frame
 	unsigned int i;
 	(void)timeInfo; // Prevent unused variable warnings aparently
 	(void)statusFlags;
-	(void)userData;
+	
+	ring_buffer *data = (ring_buffer*)userData;
 
 	float single_mono_frame[FRAME_SIZE];
 
@@ -270,6 +219,19 @@ int Audio_handler::callback(const void *input, void *output, unsigned long frame
 		}
 	}
 
-	transfer_frame->write_frame(single_mono_frame);
+	PaUtil_WriteRingBuffer(&data->rb_incoming, single_mono_frame, 256);
 	return paContinue;
+}
+
+
+
+// Gets latest audio frame on demand // May be changed or removed when audio analysis is added
+std::vector<float> Audio_handler::update()
+{
+	static float f[256];
+	while (PaUtil_GetRingBufferReadAvailable(&rb.rb_incoming) > 0)
+		PaUtil_ReadRingBuffer(&rb.rb_incoming, &f, 256);
+	std::vector<float> v(f, f + 256);
+	
+	return v;
 }

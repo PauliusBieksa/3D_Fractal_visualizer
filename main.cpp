@@ -59,7 +59,7 @@ bool update(float delta_time)
 		control1 += 0.5f * delta_time;
 	}
 
-
+	vector<float> x = ah.update();
 
 
 	elapsed_time += delta_time / 5.0f;
