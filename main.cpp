@@ -83,8 +83,8 @@ bool render() {
 void main()
 {
 	// Initialize the audio handler
-	//ah.initialize_choose_input();
-	ah.initialize_default();
+	ah.initialize_choose_input();
+	//ah.initialize_default();
 
 
 	// Create application

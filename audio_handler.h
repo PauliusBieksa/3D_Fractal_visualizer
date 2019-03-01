@@ -3,16 +3,14 @@
 #include "Lib/portaudio/src/common/pa_util.h"
 #include <vector>
 
-#define SAMPLE_RATE 44100
-#define FRAME_SIZE 256
+#define SAMPLE_RATE 48000
+#define FRAME_SIZE 512
 typedef float SAMPLE;
 
 
 
 struct ring_buffer
 {
-	float frame[256];
-
 	PaUtilRingBuffer rb_incoming;
 	void *rb_incoming_data;
 };
@@ -26,13 +24,15 @@ public:
 
 	void initialize_default();
 	void initialize_choose_input();
-	std::vector<float> update();// { PaUtil_ReadRingBuffer(&rb.rb_incoming, rb.frame, 256); return &rb.frame; }
+	std::vector<float> update();
 
 private:
 	static int callback(const void *input, void *output, unsigned long frameCount,
 		const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData);
 
-	ring_buffer rb = { 0 };
+	int i_channel_selectors[2]; // Asio requires the channels to be specified
+	int o_channel_selectors[2]; // Asio requires the channels to be specified
+	ring_buffer rb = { 0 }; // Default constructor for ring buffer
 	PaStream *stream = nullptr;
 	void *data;
 	PaStreamParameters input_pars;
