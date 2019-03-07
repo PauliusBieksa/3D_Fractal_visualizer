@@ -7,3 +7,6 @@
 [submodule "Lib/portaudio"]
 	path = Lib/portaudio
 	url = https://git.assembla.com/portaudio.git
+[submodule "Lib/Gist"]
+	path = Lib/Gist
+	url = https://github.com/riesutelis/Gist.git
