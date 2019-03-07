@@ -2,7 +2,9 @@
 
 uniform float control1;
 uniform float control2;
+uniform float pitch;
 uniform float aspect_ratio;
+uniform sampler2D gradient;
 
 layout(location = 1) in vec4 clip_pos;
 
@@ -23,7 +25,7 @@ mat3 m;
 const float k_far_clip = 100;
 
 
-const vec3 v_glow_colour = vec3(1.0, 0.075, 0.01) * 5.0;
+vec3 v_glow_colour = vec3(1.0, 0.075, 0.01) * 5.0;
 
 
 vec2 Get_scene_distance(in vec3 v_pos)
@@ -187,6 +189,8 @@ void main()
     vec3 camera_forward = normalize(vec3(0.0) - ro); // forward?
     vec3 camera_left = normalize(cross(vec3(0.0, 1.0, 0.0), camera_forward )); // left?
     vec3 camera_up = normalize(cross(camera_forward, camera_left)); // up?
+	
+	v_glow_colour = texture(gradient, vec2(0.0, pitch)).xyz;
 	
 	//float f_fov = control2;
 	

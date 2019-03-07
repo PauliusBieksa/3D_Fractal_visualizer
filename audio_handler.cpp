@@ -4,6 +4,7 @@
 
 
 static unsigned int no_input_count;
+Gist<float> gist(FRAME_SIZE, SAMPLE_RATE);
 
 // Default constructor
 Audio_handler::Audio_handler()
@@ -18,6 +19,9 @@ Audio_handler::Audio_handler()
 	err = Pa_Initialize();
 	if (err != paNoError)
 		printf("PortAudio initialization failed\n%s\n", Pa_GetErrorText(err));
+
+
+	//gist = Gist<float>;
 }
 
 
@@ -154,7 +158,8 @@ void Audio_handler::initialize_choose_input()
 	input_pars.device = dev_selection;
 	input_pars.channelCount = dev_info->maxInputChannels > 1 ? 2 : 1; // stereo input. ### Uses stereo by default
 	input_pars.sampleFormat = paFloat32;
-	input_pars.suggestedLatency = Pa_GetDeviceInfo(input_pars.device)->defaultLowInputLatency;
+	//input_pars.suggestedLatency = Pa_GetDeviceInfo(input_pars.device)->defaultLowInputLatency;
+	input_pars.suggestedLatency = 0;
 	// Assign apropriate host api info to the input parameters
 	if (Pa_GetHostApiInfo(dev_info->hostApi)->type == paASIO)
 		input_pars.hostApiSpecificStreamInfo = &asioInputInfo;
@@ -201,7 +206,8 @@ void Audio_handler::initialize_choose_input()
 	output_pars.device = dev_selection;
 	output_pars.channelCount = dev_info->maxOutputChannels > 1 ? 2 : 1; // stereo output. ### Uses stereo by default
 	output_pars.sampleFormat = paFloat32;
-	output_pars.suggestedLatency = Pa_GetDeviceInfo(output_pars.device)->defaultLowOutputLatency;
+	//output_pars.suggestedLatency = Pa_GetDeviceInfo(output_pars.device)->defaultLowOutputLatency;
+	output_pars.suggestedLatency = 0;
 	// Assign apropriate host api info to the input parameters
 	if (Pa_GetHostApiInfo(dev_info->hostApi)->type == paASIO)
 		output_pars.hostApiSpecificStreamInfo = &asioOutputInfo;
@@ -275,12 +281,23 @@ int Audio_handler::callback(const void *input, void *output, unsigned long frame
 
 
 // Gets latest audio frame on demand // May be changed or removed when audio analysis is added
-std::vector<float> Audio_handler::update()
+sound_attributes Audio_handler::update()
 {
 	static float f[FRAME_SIZE];
 	while (PaUtil_GetRingBufferReadAvailable(&rb.rb_incoming) > 0)
 		PaUtil_ReadRingBuffer(&rb.rb_incoming, &f, FRAME_SIZE);
-	std::vector<float> v(f, f + FRAME_SIZE);
+	//std::vector<float> v(f, f + FRAME_SIZE);
+
+	gist.processAudioFrame(f, FRAME_SIZE);
+
+	sound_attributes sa;
+
+	sa.rms = gist.rootMeanSquare(); // Loudness
+	sa.spectral_centroid = gist.spectralCentroid(); // Associated with brightness
+	sa.spectral_flatness = gist.spectralFlatness(); // 0 : tone-like sound 1 : noise-like sound
+	sa.pitch = gist.pitch();
+
+	printf("%f\n", gist.spectralRolloff());
 	
-	return v;
+	return sa;
 }

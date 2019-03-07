@@ -11,12 +11,14 @@ using namespace graphics_framework;
 using namespace glm;
 
 effect eff;
+texture colour_gradient;
 float elapsed_time = 0;
 float control1 = 0.0f;
 float control2 = 0.0f;
 
 
 Audio_handler ah;
+sound_attributes control_params;
 
 geometry screen_quad;
 
@@ -28,8 +30,7 @@ bool load_content() {
 	screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
 	screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
-	//ah.initialize_default();
-
+	colour_gradient = texture("res/textures/red_blue_gradient.png");
 
 	// Load in shaders
 	eff.add_shader("res/shaders/Fractal.vert", GL_VERTEX_SHADER);
@@ -59,11 +60,15 @@ bool update(float delta_time)
 		control1 += 0.5f * delta_time;
 	}
 
-	vector<float> x = ah.update();
-
+	// Get sound attributes for the video frame
+	control_params = ah.update();
+	control_params.pitch = log2f(control_params.pitch);
+	//control_params.pitch = (control_params.pitch - log2f(20)) / (log2f(20000) - log2f(20));
+	// Standard tuned guitar range
+	control_params.pitch = (control_params.pitch - log2f(80)) / (log2f(1600) - log2f(80));
+	//printf("%f\n", control_params.spectral_flatness);
 
 	elapsed_time += delta_time / 5.0f;
-	//cout << sinf(control1) << endl;
 	return true;
 }
 
@@ -75,6 +80,7 @@ bool render() {
 	glUniform1f(eff.get_uniform_location("aspect_ratio"), renderer::get_screen_aspect());
 	glUniform1f(eff.get_uniform_location("control1"), control1);
 	glUniform1f(eff.get_uniform_location("control2"), control2);
+	glUniform1f(eff.get_uniform_location("pitch"), control_params.pitch);
 	// Render geometry
 	renderer::render(screen_quad);
 	return true;

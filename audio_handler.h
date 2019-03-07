@@ -2,6 +2,7 @@
 #include "Lib/portaudio/src/common/pa_ringbuffer.h"
 #include "Lib/portaudio/src/common/pa_util.h"
 #include <vector>
+#include "Lib/Gist/src/Gist.h"
 
 #define SAMPLE_RATE 48000
 #define FRAME_SIZE 512
@@ -15,6 +16,14 @@ struct ring_buffer
 	void *rb_incoming_data;
 };
 
+struct sound_attributes
+{
+	float pitch;
+	float rms;
+	float spectral_centroid;
+	float spectral_flatness;
+};
+
 
 class Audio_handler
 {
@@ -24,7 +33,7 @@ public:
 
 	void initialize_default();
 	void initialize_choose_input();
-	std::vector<float> update();
+	sound_attributes update();
 
 private:
 	static int callback(const void *input, void *output, unsigned long frameCount,
@@ -38,4 +47,5 @@ private:
 	PaStreamParameters input_pars;
 	PaStreamParameters output_pars;
 	PaError err;
+
 };
