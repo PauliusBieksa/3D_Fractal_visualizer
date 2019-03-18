@@ -1,9 +1,9 @@
-[submodule "Lib/graphics"]
-	path = Lib/graphics
-	url = https://github.com/edinburgh-napier/set08116_framework.git
 [submodule "Lib/portaudio"]
 	path = Lib/portaudio
 	url = https://git.assembla.com/portaudio.git
 [submodule "Lib/Gist"]
 	path = Lib/Gist
 	url = https://github.com/riesutelis/Gist.git
+[submodule "Lib/graphics"]
+	path = Lib/graphics
+	url = https://github.com/edinburgh-napier/set08116_framework.git
