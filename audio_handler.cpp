@@ -4,24 +4,21 @@
 
 
 static unsigned int no_input_count;
-Gist<float> gist(FRAME_SIZE, SAMPLE_RATE);
+int frame_size = 512;
 
 // Default constructor
 Audio_handler::Audio_handler()
 {
 	// Initialize ring buffer
-	rb.rb_incoming_data = PaUtil_AllocateMemory(sizeof(float) * FRAME_SIZE);
+	rb.rb_incoming_data = PaUtil_AllocateMemory(sizeof(float) * frame_size);
 	if (rb.rb_incoming_data == NULL)
 		printf("Failed to allocate memory for ringbuffer.\n");
-	PaUtil_InitializeRingBuffer(&rb.rb_incoming, sizeof(float), FRAME_SIZE, rb.rb_incoming_data);
+	PaUtil_InitializeRingBuffer(&rb.rb_incoming, sizeof(float), frame_size, rb.rb_incoming_data);
 
 	// Initialize PortAudio
 	err = Pa_Initialize();
 	if (err != paNoError)
 		printf("PortAudio initialization failed\n%s\n", Pa_GetErrorText(err));
-
-
-	//gist = Gist<float>;
 }
 
 
@@ -89,7 +86,7 @@ void Audio_handler::initialize_default()
 		&input_pars,
 		&output_pars,
 		SAMPLE_RATE,
-		FRAME_SIZE,
+		frame_size,
 		paClipOff,
 		callback,
 		&rb
@@ -106,13 +103,13 @@ void Audio_handler::initialize_default()
 
 
 // Choose an input device and open stream
-void Audio_handler::initialize_choose_input()
+int Audio_handler::initialize_custom()
 {
 	// If stream already open, return
 	if (stream != nullptr)
 	{
 		printf("Stream already open\n");
-		return;
+		return 0;
 	}
 
 	const PaDeviceInfo *dev_info;
@@ -214,24 +211,35 @@ void Audio_handler::initialize_choose_input()
 	else
 		output_pars.hostApiSpecificStreamInfo = NULL;
 
+	// Get frame size
+	printf("\n\nSpecify desired buffer size:\n");
+	std::cin >> frame_size;
+
 	// Open stream
 	err = Pa_OpenStream(
 		&stream,
 		&input_pars,
 		&output_pars,
 		SAMPLE_RATE,
-		FRAME_SIZE,
+		frame_size,
 		paClipOff,
 		callback,
 		&rb
 	);
 	if (err != paNoError)
+	{
 		printf("Failed opening stream\n%s\n", Pa_GetErrorText(err));
+		return 1;
+	}
 
 	// Start audio processing
 	err = Pa_StartStream(stream);
 	if (err != paNoError)
+	{
 		printf("Failed to start audio processing\n%s\n", Pa_GetErrorText(err));
+		return 1;
+	}
+	return 0;
 }
 
 
@@ -247,10 +255,11 @@ int Audio_handler::callback(const void *input, void *output, unsigned long frame
 	// Prevent unused variable warnings
 	(void)timeInfo;
 	(void)statusFlags;
-	
+
 	ring_buffer *data = (ring_buffer*)userData;
 
-	float single_mono_frame[FRAME_SIZE];
+	//float single_mono_frame[frame_size];
+	std::vector<float> single_mono_frame(frame_size);
 
 	if (input == NULL)
 	{
@@ -274,7 +283,7 @@ int Audio_handler::callback(const void *input, void *output, unsigned long frame
 		}
 	}
 
-	PaUtil_WriteRingBuffer(&data->rb_incoming, single_mono_frame, FRAME_SIZE);
+	PaUtil_WriteRingBuffer(&data->rb_incoming, &single_mono_frame[0], frame_size);
 	return paContinue;
 }
 
@@ -283,21 +292,23 @@ int Audio_handler::callback(const void *input, void *output, unsigned long frame
 // Gets latest audio frame on demand // May be changed or removed when audio analysis is added
 sound_attributes Audio_handler::update()
 {
-	static float f[FRAME_SIZE];
-	while (PaUtil_GetRingBufferReadAvailable(&rb.rb_incoming) > 0)
-		PaUtil_ReadRingBuffer(&rb.rb_incoming, &f, FRAME_SIZE);
-	//std::vector<float> v(f, f + FRAME_SIZE);
+	Gist<float> gist(frame_size, SAMPLE_RATE);
 
-	gist.processAudioFrame(f, FRAME_SIZE);
+	//static float f[frame_size];
+	static std::vector<float> f(frame_size);
+	while (PaUtil_GetRingBufferReadAvailable(&rb.rb_incoming) > 0)
+		PaUtil_ReadRingBuffer(&rb.rb_incoming, &f[0], frame_size);
+
+	gist.processAudioFrame(f);
 
 	sound_attributes sa;
 
-	sa.rms = gist.rootMeanSquare(); // Loudness
-	sa.spectral_centroid = gist.spectralCentroid(); // Associated with brightness
-	sa.spectral_flatness = gist.spectralFlatness(); // 0 : tone-like sound 1 : noise-like sound
 	sa.pitch = gist.pitch();
+	sa.rms = gist.rootMeanSquare();
+	sa.spectral_centroid = gist.spectralCentroid();
+	sa.spectral_crest = gist.spectralCrest();
+	sa.spectral_rolloff = gist.spectralRolloff();
+	sa.zcr = gist.zeroCrossingRate();
 
-	printf("%f\n", gist.spectralRolloff());
-	
 	return sa;
 }

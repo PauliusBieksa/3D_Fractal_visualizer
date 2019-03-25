@@ -5,9 +5,8 @@
 #include "Lib/Gist/src/Gist.h"
 
 #define SAMPLE_RATE 48000
-#define FRAME_SIZE 512
+//#define frame_size 512
 typedef float SAMPLE;
-
 
 
 struct ring_buffer
@@ -19,9 +18,11 @@ struct ring_buffer
 struct sound_attributes
 {
 	float pitch;
-	float rms;
-	float spectral_centroid;
-	float spectral_flatness;
+	float rms; // Loudness
+	float spectral_centroid; // Has "robust connection" with brightness
+	float spectral_crest; // Difference between RMS and peak value of the waveform
+	float spectral_rolloff; // Measure of the amount of the right-skewedness of the power spectrum?
+	float zcr; // The rate of sign-changes of the signal during the frame. Returns whole numbers
 };
 
 
@@ -32,7 +33,7 @@ public:
 	~Audio_handler();
 
 	void initialize_default();
-	void initialize_choose_input();
+	int initialize_custom();
 	sound_attributes update();
 
 private:
@@ -47,5 +48,4 @@ private:
 	PaStreamParameters input_pars;
 	PaStreamParameters output_pars;
 	PaError err;
-
 };

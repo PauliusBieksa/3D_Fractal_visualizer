@@ -1,9 +1,10 @@
 #version 440
 
-uniform float control1;
+uniform float iterated_angle;
 uniform float control2;
 uniform float cam_rotate;
-uniform float pitch;
+uniform float col_picker;
+uniform vec3 rot_axis;
 
 uniform float aspect_ratio;
 uniform sampler2D gradient;
@@ -19,18 +20,18 @@ layout(location = 0) out vec4 out_colour;
 #define FAR_CLIP 100
 #define CAMERA_DISTANCE 20.0
 #define RAYMARCH_ITERATIONS 24
-#define IFS_ITERATIONS 16
+#define IFS_ITERATIONS 24
 #define VIGNETTE_EXPOSURE 0.2
 
 // IFS parameters
 const float scale = 1.25;
-vec3 offset = vec3(-2.0, -1.0, -2.0);
+vec3 offset = vec3(2.0, 1.0, 2.0);
 mat3 IFS_matrix; // Matrix applied to shape each IFS iteration
 
 // Unscoped parameters
 vec4 fractal_colour = vec4(1.0, 0.0, 0.0, 1.0);
 vec4 bg_colour = vec4(0.0, 0.0, 0.5, 1.0);
-vec3 IFS_rot_axis = vec3(0.5, 1.0, 3.0);
+vec3 IFS_rot_axis = vec3(0.2, 1.0, 3.0);
 
 
 // Gets rotation matrix from axis and angle
@@ -53,10 +54,11 @@ mat3 Get_rot_matrix(vec3 axis, float angle)
 	);
 }
 
-//
+// Map contains the IFS function that defines the fractal
 vec2 Map(vec3 pos)
 {
     float closest = FAR_CLIP;
+    vec3 distort = abs(vec3(sin(pos.y / 5.0), 0.0, cos(pos.y / 5.0))); // Distorts the starting cuboid slightly
 
     float total_scale = 1.0;
     for (int i = 0; i < IFS_ITERATIONS; i++)
@@ -64,7 +66,7 @@ vec2 Map(vec3 pos)
         pos = abs(pos);
         pos *= scale;
         total_scale *= scale;
-        pos += offset;
+        pos -= offset + distort;
         pos = pos * IFS_matrix;
 
         float cur_dist = length(pos) * total_scale;
@@ -73,11 +75,11 @@ vec2 Map(vec3 pos)
     float l = length(pos) / total_scale;
 
     // Add fill around individual points in the shape
-    float dist = l - 0.07;
+    float dist = l - 0.05;
     return vec2(dist, closest);
 }
 
-//
+// 
 vec4 Raycast(vec3 ro, vec3 rd)
 {
     float closest = FAR_CLIP;
@@ -122,7 +124,6 @@ vec4 Trace_ray(vec3 ro, vec3 rd)
 
     float shade = 1.0;
     float glow = 0.0;
-    vec3 env_dir = rd;
 
     // Ray has hit the fractal and not far plane
     if (hit.x < FAR_CLIP)
@@ -165,17 +166,18 @@ void main()
 	// Camera
 	vec3 ro = vec3(sin(cam_rotate), sin(cam_rotate * 0.7) * 0.7, cos(cam_rotate)) * CAMERA_DISTANCE; // Ray origin - has to not be at center
 	vec3 cam_forward = normalize(vec3(0.0) - ro);
-    vec3 cam_left = normalize(cross(vec3(0.0, 1.0, 0.0), cam_forward)); // Presumes up to be pos y (relitively)
+    vec3 cam_left = normalize(cross(vec3(0.0, 1.0, 0.0), cam_forward)); // Presumes up to be facing relatively upwards
     vec3 cam_up = normalize(cross(cam_forward, cam_left));
 
     vec3 rd = normalize(pos.x * cam_left + pos.y * cam_up + cam_forward);
 
-    fractal_colour = texture(gradient, vec2(0.0, pitch));
+    fractal_colour = texture(gradient, vec2(0.0, col_picker));
 
-    mat3 temp_matrix = Get_rot_matrix(vec3(0.1, 1.0, 0.01), control1 * 0.3);
+    mat3 temp_matrix = Get_rot_matrix(vec3(0.1, 1.0, 0.01), iterated_angle * 0.3);
+    IFS_rot_axis += rot_axis;
     IFS_rot_axis = IFS_rot_axis * temp_matrix;
 
-    float IFS_rot_angle = sin(control1 * 0.5);
+    float IFS_rot_angle = sin(iterated_angle * 0.5);
     IFS_matrix = Get_rot_matrix(IFS_rot_axis, IFS_rot_angle);
 
     vec4 result = Trace_ray(ro, rd);
