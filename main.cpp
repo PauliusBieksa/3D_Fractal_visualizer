@@ -13,6 +13,7 @@ using namespace glm;
 effect eff;
 texture colour_gradient;
 float elapsed_time = 0;
+bool fullscreen = false;
 
 Audio_handler ah;
 sound_attributes sa;
@@ -20,6 +21,8 @@ sound_attributes control_params;
 
 geometry screen_quad;
 
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
 
 float lerp(float start, float end, float alpha)
 {
@@ -50,16 +53,37 @@ bool load_content() {
 	eff.add_shader("res/shaders/glowing.frag", GL_FRAGMENT_SHADER);
 	// Build effect
 	eff.build();
+
+	// Bind only effect and set MVP uniform for a quad
+	renderer::bind(eff);
+	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
 	return true;
 }
 
 
 bool update(float delta_time)
 {
+	static float cd = 0.0f;
+	cd -= delta_time;
+	if (glfwGetKey(renderer::get_window(), GLFW_KEY_ENTER) && cd < 0.0f)
+	{
+		cd = 0.5f;
+		if (fullscreen)
+		{
+			renderer::set_screen_mode(renderer::windowed);
+			renderer::set_screen_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
+		}
+		else
+			renderer::set_screen_mode(renderer::fullscreen);
+		fullscreen = !fullscreen;
+	}
+
+	auto start = chrono::steady_clock::now();
+
 	// Get sound attributes for the video frame
 	sa = ah.update();
 	// Check for nan and use previous values for sound below treshold
-	if (!(sa.pitch != sa.pitch || sa.rms < 0.001f))
+	if (!(isnan(sa.pitch) || sa.rms < 0.001f))
 	{
 		//control_params.pitch = sa.pitch;
 		float p = sa.pitch;
@@ -71,12 +95,14 @@ bool update(float delta_time)
 		p = (logf(p) - logf(80.0f)) / (logf(1600.0f) - logf(80.0f));
 
 		// Log can produce nan on some inputs
-		if (p == p)
+		if (!isnan(p))
 		{
 			p *= 9.0f;
 			p += 12.0f;
 			control_params.pitch = lerp(control_params.pitch, p, delta_time * 10.0f);
 		}
+		if (isnan(control_params.pitch))
+			control_params.pitch = 0.5f;
 
 		control_params.spectral_centroid = lerp(control_params.spectral_centroid, sa.spectral_centroid * 0.8f, sa.rms * sa.rms);
 		control_params.spectral_crest = lerp(control_params.spectral_crest, sa.spectral_crest, sa.rms * sa.rms);
@@ -92,10 +118,6 @@ bool update(float delta_time)
 }
 
 bool render() {
-	// Bind effect
-	renderer::bind(eff);
-	// Set MVP matrix uniform
-	glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(mat4(1.0f)));
 	glUniform1f(eff.get_uniform_location("aspect_ratio"), renderer::get_screen_aspect());
 	glUniform1f(eff.get_uniform_location("iterated_angle"), control_params.pitch);
 	glUniform1f(eff.get_uniform_location("cam_rotate"), elapsed_time);
@@ -114,7 +136,6 @@ void main()
 	while (ah.initialize_custom() != 0)
 		printf("\nIncompatible audio stream parameters. Do not choose an output on a different device than the input.\n");
 	//ah.initialize_default();
-
 
 	// Create application
 	app application("Fractals");

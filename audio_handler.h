@@ -36,6 +36,9 @@ public:
 	int initialize_custom();
 	sound_attributes update();
 
+	int get_frame_size();
+	float get_latency();
+
 private:
 	static int callback(const void *input, void *output, unsigned long frameCount,
 		const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData);

@@ -312,3 +312,17 @@ sound_attributes Audio_handler::update()
 
 	return sa;
 }
+
+
+
+int Audio_handler::get_frame_size()
+{
+	return frame_size;
+}
+
+
+
+float Audio_handler::get_latency()
+{
+	return Pa_GetStreamInfo(stream)->inputLatency;
+}
