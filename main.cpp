@@ -4,6 +4,10 @@
 #include <math.h>
 #include "audio_handler.h"
 
+// For saving measurements
+#include <fstream>
+#include <string>
+#include <chrono>
 
 
 using namespace std;
@@ -21,6 +25,8 @@ sound_attributes control_params;
 
 geometry screen_quad;
 
+ofstream file;
+int measurements = 5000;
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
@@ -33,6 +39,10 @@ float lerp(float start, float end, float alpha)
 
 bool load_content() {
 	renderer::set_screen_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	file = ofstream("Frame_size-" + to_string(ah.get_frame_size()) + " latency-" + to_string(ah.get_latency()) + " resolution-"
+		+ to_string(renderer::get_screen_width()) + "_" + to_string(renderer::get_screen_height()) + ".csv", ofstream::out);
+	file << "Audio porcessing,Rendering" << endl;
 
 	// Screen quad
 	vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),	vec3(1.0f, 1.0f, 0.0f) };
@@ -113,13 +123,17 @@ bool update(float delta_time)
 		control_params.rms = sa.rms;
 	}
 
-	printf("\nrms: %f\nspectral centroid: %f\nspectral rolloff: %f\nzcr: %f\npitch: %f\n",
-		sa.rms, control_params.spectral_centroid, control_params.spectral_rolloff, control_params.zcr, control_params.pitch);
+	auto end = chrono::steady_clock::now();
+	chrono::duration<double> diff = end - start;
+	file << diff.count() << ", ";
+
 	elapsed_time += delta_time / 5.0f;
 	return true;
 }
 
 bool render() {
+	auto start = chrono::steady_clock::now();
+
 	glUniform1f(eff.get_uniform_location("aspect_ratio"), renderer::get_screen_aspect());
 	glUniform1f(eff.get_uniform_location("iterated_angle"), control_params.pitch);
 	glUniform1f(eff.get_uniform_location("cam_rotate"), elapsed_time);
@@ -129,6 +143,14 @@ bool render() {
 	glUniform3fv(eff.get_uniform_location("rot_axis"), 1, value_ptr(tmp));
 	// Render geometry
 	renderer::render(screen_quad);
+
+	auto end = chrono::steady_clock::now();
+	chrono::duration<double> diff = end - start;
+	file << diff.count() << endl;
+
+	if (--measurements <= 0)
+		renderer::shutdown();
+
 	return true;
 }
 
@@ -147,4 +169,6 @@ void main()
 	application.set_render(render);
 	// Run application
 	application.run();
+
+	file.close();
 }
