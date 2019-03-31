@@ -32,6 +32,8 @@ float lerp(float start, float end, float alpha)
 }
 
 bool load_content() {
+	renderer::set_screen_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
+
 	// Screen quad
 	vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),	vec3(1.0f, 1.0f, 0.0f) };
 	vector<vec2> tex_coords{ vec2(0.0, 0.0), vec2(1.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f) };
