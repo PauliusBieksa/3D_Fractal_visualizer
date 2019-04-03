@@ -113,8 +113,6 @@ bool update(float delta_time)
 		control_params.rms = sa.rms;
 	}
 
-	printf("\nrms: %f\nspectral centroid: %f\nspectral rolloff: %f\nzcr: %f\npitch: %f\n",
-		sa.rms, control_params.spectral_centroid, control_params.spectral_rolloff, control_params.zcr, control_params.pitch);
 	elapsed_time += delta_time / 5.0f;
 	return true;
 }
@@ -125,7 +123,7 @@ bool render() {
 	glUniform1f(eff.get_uniform_location("cam_rotate"), elapsed_time);
 	float sc01 = control_params.spectral_centroid * 0.1;
 	glUniform1f(eff.get_uniform_location("col_picker"),sc01);
-	vec3 tmp = vec3(control_params.spectral_centroid, control_params.spectral_rolloff, control_params.zcr);
+	vec3 tmp = vec3(control_params.spectral_crest, control_params.spectral_rolloff, control_params.zcr);
 	glUniform3fv(eff.get_uniform_location("rot_axis"), 1, value_ptr(tmp));
 	// Render geometry
 	renderer::render(screen_quad);
